@@ -57,10 +57,10 @@ def get_idx_info(INFO, idx):
         except:
             idx_dict['institutions'].append('NOAFFLI')
         
-        try:  
+        try:           
             p = data['classificationSchemes']['subjectAreas']            
             for x in p:
-                idx_dict['area'].append(x['label'])
+                idx_dict['area'].append(x['id'])
         except:
             idx_dict['area'].append('NOAREAS')
         
@@ -86,40 +86,70 @@ def get_date(date):
     return time.mktime(datetime.datetime.strptime(date, format).timetuple())
 
 def to_adj_matrix(edge_list):
-    G= nx.Graph()
-    G.add_edges_from(edge_list)
+    G= nx.DiGraph()
+    G.add_weighted_edges_from(edge_list)
     A = nx.to_numpy_matrix(G)
     U = np.triu(A)
     L = np.tril(A)
     
-    U_upper=np.triu_indices(len(U),1) 
-    U[U_upper]=U.T[U_upper]
+        
+    U = np.maximum(U, U.transpose() )
+    L = np.maximum(L, L.transpose() )
     
-    L_lower=np.tril_indices(len(L),-1) 
-    L[L_lower]=L.T[L_lower]
-
     A = U+L
     
     return A
 
-def to_edgelist(my_edges, mydict, mydate):
+
+
+def to_edgelist_co_author(my_edges, mydict, mydate):
     authors = mydict['authors']
     date = mydict['date']
     if date <= mydate :
-        edge_list = list(itertools.combinations(authors, 2))
+        edge_list = list(itertools.combinations(authors, 2))        
         if my_edges is not None:
             my_edges=my_edges+edge_list
         else:
             my_edges=edge_list
     output=[]
     counter=Counter(my_edges)
+
     author_pairs = list(set(my_edges))
     for x in author_pairs:
         output.append((x[0],x[1],counter[x]))
     
-    print(output)
     
-    return my_edges
+    return output
 
+def to_edgelist_co_area_ins(my_edges, mydict, mydate):
+    
+#    authors = mydict['authors']
+    ins = mydict['institutions']
+    date = mydict['date']
+    areas = mydict['area']
+    
+    if date <= mydate :
+#        edge_list = list(itertools.combinations(authors, 2))
+        edge_list = list(itertools.combinations(ins, 2))
+        clist=[]
+        for x in edge_list:
+            for y in areas:
+                clist.append((x, y))
+    
+        if my_edges is not None:
+            my_edges = my_edges + clist
+        else:
+            my_edges = clist
+    
+    output=[]
+    counter=Counter(my_edges)
+
+    pairs = list(set(my_edges))
+    
+    for x in pairs:
+        output.append((x[0],x[1], counter[x]))
+    
+    
+    return output
 
 
